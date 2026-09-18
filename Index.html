@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>FF Control Panel</title>
+<style>
+  :root{
+    --bg:#0b0f19; --card:#151c2b; --card2:#1d2638;
+    --text:#f4f7ff; --muted:#9aa8c0; --accent:#6c63ff;
+    --accent2:#00d4ff; --danger:#ff5277;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:Arial,Helvetica,sans-serif; color:var(--text);
+    background:radial-gradient(circle at top,#202b50 0%,var(--bg) 48%);
+    min-height:100vh; padding:18px;
+  }
+  .wrap{max-width:650px;margin:auto}
+  header{text-align:center;margin:8px 0 20px}
+  h1{font-size:26px;margin:0 0 7px}
+  .sub{color:var(--muted);font-size:13px}
+  .apps{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+  button,.btn{
+    border:0;border-radius:16px;padding:16px;color:white;font-weight:700;
+    font-size:15px;cursor:pointer;transition:.15s;touch-action:manipulation;
+  }
+  button:active{transform:scale(.97)}
+  .ff{background:linear-gradient(135deg,#ff7b22,#ef245f)}
+  .max{background:linear-gradient(135deg,#6d5dfc,#00b9ff)}
+  .panel{
+    background:rgba(21,28,43,.94);border:1px solid #2c3850;
+    border-radius:20px;padding:16px;margin-bottom:16px;
+    box-shadow:0 10px 30px #0003;
+  }
+  .panel h2{font-size:16px;margin:0 0 12px}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .custom{
+    min-height:92px;background:linear-gradient(145deg,var(--card2),#111827);
+    border:1px solid #35435e;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:8px;
+  }
+  .custom span{font-size:25px}
+  .custom small{font-size:12px;color:#dbe4ff;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .row{display:flex;gap:8px;margin-top:12px}
+  input{
+    width:100%;min-width:0;background:#0c1220;color:white;border:1px solid #34425d;
+    border-radius:12px;padding:13px;font-size:14px;outline:none;
+  }
+  .primary{background:var(--accent);flex:1}
+  .secondary{background:#334158}
+  .danger{background:var(--danger)}
+  .hint{font-size:12px;color:var(--muted);line-height:1.5;margin-top:10px}
+  .status{font-size:12px;color:#9fffc8;text-align:center;min-height:16px;margin-top:8px}
+  @media(max-width:390px){.grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🎮 FF CONTROL PANEL</h1>
+    <div class="sub">Hkhoisupper🚀 • Bảng nút tùy chỉnh • Lưu trực tiếp trên trình duyệt</div>
+  </header>
+
+  <div class="apps">
+    <button class="ff" onclick="openApp('ff')">🔥 MỞ FF</button>
+    <button class="max" onclick="openApp('ffmax')">⚡ MỞ FF MAX</button>
+  </div>
+
+  <div class="apps">
+    <button class="secondary" onclick="openSocial('zalo')">💬 ZALO</button>
+    <button class="secondary" onclick="openSocial('tiktok')">🎵 TIKTOK</button>
+  </div>
+
+  <section class="panel">
+    <h2>🕹️ NÚT TÙY CHỈNH</h2>
+    <div id="buttonGrid" class="grid"></div>
+    <div class="row">
+      <input id="newName" placeholder="Tên nút mới, ví dụ: Nút kéo tâm">
+      <button class="primary" onclick="addButton()">+ Thêm</button>
+    </div>
+    <div class="hint">
+      Chạm vào một nút để sửa tên hoặc nội dung. Các nút chỉ là giao diện điều khiển,
+      không tự can thiệp vào game.
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>🔗 CÀI ĐẶT LINK MỞ ỨNG DỤNG</h2>
+    <input id="ffLink" placeholder="Deep link FF, ví dụ: tencheme://">
+    <div style="height:8px"></div>
+    <input id="maxLink" placeholder="Deep link FF Max, ví dụ: tencheme://">
+    <div class="row">
+      <button class="primary" onclick="saveLinks()">💾 Lưu link</button>
+      <button class="secondary" onclick="resetAll()">↺ Đặt lại</button>
+    </div>
+    <div class="hint">
+      Nếu chưa có deep link chính xác, nút sẽ mở trang tìm kiếm ứng dụng tương ứng.
+      Trình duyệt iPhone có thể yêu cầu xác nhận khi mở ứng dụng.
+    </div>
+    <div id="status" class="status"></div>
+  </section>
+</div>
+
+<script>
+const defaultButtons = [
+  {name:"Nút 1", note:"Chạm để chỉnh sửa"},
+  {name:"Nút 2", note:"Chạm để chỉnh sửa"},
+  {name:"Nút 3", note:"Chạm để chỉnh sửa"},
+  {name:"Nút 4", note:"Chạm để chỉnh sửa"},
+  {name:"Nút 5", note:"Chạm để chỉnh sửa"},
+  {name:"Nút 6", note:"Chạm để chỉnh sửa"}
+];
+
+let buttons = JSON.parse(localStorage.getItem("ff_buttons") || "null") || defaultButtons;
+let links = JSON.parse(localStorage.getItem("ff_links") || "null") || {ff:"",ffmax:""};
+
+function render(){
+  const grid=document.getElementById("buttonGrid");
+  grid.innerHTML="";
+  buttons.forEach((b,i)=>{
+    const el=document.createElement("button");
+    el.className="custom";
+    el.innerHTML=`<span>🎯</span><small>${escapeHtml(b.name)}</small>`;
+    el.onclick=()=>editButton(i);
+    grid.appendChild(el);
+  });
+  document.getElementById("ffLink").value=links.ff;
+  document.getElementById("maxLink").value=links.ffmax;
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function addButton(){
+  const input=document.getElementById("newName");
+  const name=input.value.trim();
+  if(!name){alert("Hãy nhập tên cho nút.");return;}
+  buttons.push({name,note:""});
+  input.value="";
+  persist();render();
+}
+function editButton(i){
+  const b=buttons[i];
+  const name=prompt("Tên nút:",b.name);
+  if(name===null)return;
+  const note=prompt("Nội dung/chức năng của nút:",b.note||"");
+  if(note===null)return;
+  b.name=name.trim()||("Nút "+(i+1)); b.note=note;
+  persist();render();
+}
+function persist(){localStorage.setItem("ff_buttons",JSON.stringify(buttons));}
+function saveLinks(){
+  links.ff=document.getElementById("ffLink").value.trim();
+  links.ffmax=document.getElementById("maxLink").value.trim();
+  localStorage.setItem("ff_links",JSON.stringify(links));
+  showStatus("Đã lưu cài đặt.");
+}
+function openSocial(type){
+  const key=type==="zalo"?"zalo":"tiktok";
+  const label=type==="zalo"?"Zalo":"TikTok";
+  const saved=localStorage.getItem("ff_"+key+"_link") || "";
+  const link=saved || prompt("Nhập link "+label+" của bạn:", "");
+  if(link){
+    localStorage.setItem("ff_"+key+"_link",link.trim());
+    window.open(link.trim(),"_blank");
+  }
+}
+function openApp(type){
+  const link=type==="ff"?links.ff:links.ffmax;
+  if(link){
+    window.location.href=link;
+  }else{
+    const q=type==="ff"?"Garena Free Fire":"Free Fire MAX";
+    window.open("https://www.google.com/search?q="+encodeURIComponent(q+" app"),"_blank");
+    showStatus("Chưa có deep link. Đã mở trang tìm kiếm.");
+  }
+}
+function resetAll(){
+  if(!confirm("Xóa toàn bộ nút và link đã lưu?"))return;
+  localStorage.removeItem("ff_buttons");localStorage.removeItem("ff_links");
+  buttons=defaultButtons.map(x=>({...x}));links={ff:"",ffmax:""};
+  render();showStatus("Đã đặt lại.");
+}
+function showStatus(t){
+  document.getElementById("status").textContent=t;
+  setTimeout(()=>document.getElementById("status").textContent="",2500);
+}
+render();
+</script>
+</body>
+</html>
